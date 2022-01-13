@@ -35,8 +35,8 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                 for printer in btPortInfoArray {
                     info.append(portInfoToDictionary(portInfo: printer as! PortInfo))
                 }
-                let btPortInfoArray = try SMPort.searchPrinter(target: "BLE:")
-                for printer in btPortInfoArray {
+                let blePortInfoArray = try SMPort.searchPrinter(target: "BLE:")
+                for printer in blePortInfoArray {
                     info.append(portInfoToDictionary(portInfo: printer as! PortInfo))
                 }
             }
