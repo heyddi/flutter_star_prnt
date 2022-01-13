@@ -24,7 +24,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                 result(FlutterMethodNotImplemented)
       }
     }
-    
+
     public func portDiscovery(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! Dictionary<String, AnyObject>
         let type = arguments["type"] as! String
@@ -32,6 +32,10 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
             var info = [Dictionary<String,String>]()
             if ( type == "Bluetooth" || type == "All") {
                 let btPortInfoArray = try SMPort.searchPrinter(target: "BT:")
+                for printer in btPortInfoArray {
+                    info.append(portInfoToDictionary(portInfo: printer as! PortInfo))
+                }
+                let btPortInfoArray = try SMPort.searchPrinter(target: "BLE:")
                 for printer in btPortInfoArray {
                     info.append(portInfoToDictionary(portInfo: printer as! PortInfo))
                 }
@@ -68,14 +72,14 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                 SMPort.release(port)
             }
             if #available(iOS 11.0, *){
-                if(portName.uppercased().hasPrefix("BT:")) {
+                if(portName.uppercased().hasPrefix("BT:") || portName.uppercased().hasPrefix("BLE:")) {
                     usleep(200000) //sleep 0.2 seconds
                 }
             }
             try port.getParsedStatus(starPrinterStatus: &status, level: 2)
             var firmwareInformation: Dictionary =  [AnyHashable:Any]()
             var errorMsg:String?
-            
+
             do {
                 firmwareInformation = try port.getFirmwareInformation()
             } catch {
@@ -88,14 +92,14 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
              )
         }
     }
-    
+
     public func print(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! Dictionary<String, AnyObject>
         let portName = arguments["portName"] as! String
         let emulation = arguments["emulation"] as! String
         let printCommands = arguments["printCommands"] as! Array<Dictionary<String,Any>>
 
-        
+
         let portSettings :String = getPortSettingsOption(emulation)
         let starEmulation :StarIoExtEmulation = getEmulation(emulation)
         let builder:ISCBBuilder = StarIoExt.createCommandBuilder(starEmulation)
@@ -103,9 +107,9 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
         appendCommands(builder: builder, printCommands: printCommands)
         builder.endDocument()
         sendCommand(portName: portName, portSetting: portSettings, command: [UInt8](builder.commands.copy() as! Data),result: result)
-        
+
     }
-    
+
     func portInfoToDictionary(portInfo: PortInfo) -> Dictionary<String,String>{
         return [
             "portName": portInfo.portName,
@@ -113,7 +117,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
             "modelName": portInfo.modelName
         ]
     }
-    
+
     func getPortSettingsOption(_ emulation:String) ->String {
         switch (emulation) {
             case "EscPosMobile": return "mini"
@@ -694,7 +698,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                 NSAttributedString.Key.foregroundColor: UIColor.black,
                 NSAttributedString.Key.font: font
             ]
-        
+
 
         string.draw(in: rect, withAttributes: attributes)
 
@@ -711,7 +715,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
         do {
             port = try SMPort.getPort(portName: portName, portSettings: portSetting, ioTimeoutMillis: 10000)
             let SM_TRUE =  SM_TRUESHARED
-            
+
             var json = Dictionary<AnyHashable, Any>()
             defer {
                 SMPort.release(port)
@@ -746,7 +750,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                 }
                 try port.endCheckedBlock(starPrinterStatus: &status, level: 2)
                 let newStat = portStatusToDictionary(status: status, firmwareInformation: [String:Any](),errorMsg: nil)
-                
+
                 json.merge(newStat) {  (current, _) in current}
                 if (status.coverOpen == SM_TRUE) {
                   json["error_message"] = "Printer cover is open"
@@ -759,7 +763,7 @@ public class SwiftFlutterStarPrntPlugin: NSObject, FlutterPlugin {
                   isSucess = false
                 }
             }
-        
+
             if (status.receiptPaperNearEmptyInner == SM_TRUE || status.receiptPaperNearEmptyOuter == SM_TRUE){
               json["error_message"] = "Paper near empty"
             }

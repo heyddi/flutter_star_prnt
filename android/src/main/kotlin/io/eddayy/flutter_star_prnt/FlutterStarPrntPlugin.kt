@@ -266,6 +266,9 @@ public class FlutterStarPrntPlugin : FlutterPlugin, MethodCallHandler {
       for (portInfo in StarIOPort.searchPrinter("BT:")) {
         arrayDiscovery.add(portInfo)
       }
+      for (portInfo in StarIOPort.searchPrinter("BLE:")) {
+        arrayDiscovery.add(portInfo)
+      }
     }
     if (interfaceName == "LAN" || interfaceName == "All") {
       for (port in StarIOPort.searchPrinter("TCP:")) {
@@ -286,13 +289,15 @@ public class FlutterStarPrntPlugin : FlutterPlugin, MethodCallHandler {
 
       if (discovery.getPortName().startsWith("BT:"))
           port.put("portName", "BT:" + discovery.getMacAddress())
+      else if (discovery.getPortName().startsWith("BLE:"))
+          port.put("portName", "BLE:" + discovery.getMacAddress())
       else port.put("portName", discovery.getPortName())
 
       if (!discovery.getMacAddress().equals("")) {
 
         port.put("macAddress", discovery.getMacAddress())
 
-        if (discovery.getPortName().startsWith("BT:")) {
+        if (discovery.getPortName().startsWith("BT:") || discovery.getPortName().startsWith("BLE:")) {
           port.put("modelName", discovery.getPortName())
         } else if (!discovery.getModelName().equals("")) {
           port.put("modelName", discovery.getModelName())
